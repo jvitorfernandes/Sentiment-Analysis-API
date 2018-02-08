@@ -17,6 +17,12 @@ function listening(){
 
 app.use(express.static('websites'));
 
+app.get('/all', sendAll);
+
+function sendAll(request, response){
+    response.send(words);
+}
+
 app.get('/add/:word/:score?', addWord);
 function addWord(request, response){
     
@@ -42,12 +48,6 @@ function addWord(request, response){
     
     
 };
-
-app.get('/all', sendAll);
-
-function sendAll(request, response){
-    response.send(words);
-}
 
 app.get('/search/:word/', searchWord);
 function searchWord(request, response){
