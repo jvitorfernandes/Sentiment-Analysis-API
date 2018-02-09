@@ -1,23 +1,75 @@
 
 const fs = require('fs');
-var data = fs.readFileSync('words.json');
-var words = JSON.parse(data);
-console.log(words);
+var data = fs.readFileSync('additional.json');
+var additional = JSON.parse(data);
+
+var afinnData = fs.readFileSync('afinn.json');
+var afinn = JSON.parse(afinnData);
+
 
 const express = require('express');
+const cors = require('cors');
 const app = express();
+const bodyParser = require('body-parser');
 var server = app.listen(3000, listening);
 
 function listening(){
     console.log('listening. . .')
 }
 
-app.use(express.static('websites'));
+app.use(express.static('public'));
+app.use(bodyParser.urlencoded({extended:false}));
+app.use(bodyParser.json());
+app.use(cors());
 
 app.get('/all', sendAll);
 
 function sendAll(request, response){
-    response.send(words);
+    var data = {
+        additional: additional,
+        afinn: afinn
+    }
+    response.send(data);
+}
+
+app.post('/analyze', analyzeThis);
+
+function analyzeThis(request, response){
+    var txt = request.body.text;
+    var words = txt.split(/\W+/);
+    var totalScore = 0;
+    var wordlist = [];
+    
+    words.forEach(function(word, index){
+        var found = false;
+        var score=0;
+        if(additional.hasOwnProperty(word)){
+            score += Number(additional[word]);
+            found=true;
+        }
+        else if(afinn.hasOwnProperty(word)){
+            score += Number(afinn[word]);
+            found=true;
+        }
+        
+        if(found){
+            wordlist.push({
+                word: word,
+                score: score
+            })
+        }
+        
+        totalScore += score;
+    });
+    
+    console.log(request.body);
+    var reply = {
+        score: totalScore,
+        comparative: totalScore / words.length,
+        wordlist: wordlist
+    }
+    
+    response.send(reply);
 }
 
 app.get('/add/:word/:score?', addWord);
@@ -36,10 +88,10 @@ function addWord(request, response){
         response.send(reply);
     }else{
         
-        words[word] = score;
-        var data = JSON.stringify(words, null, 4);
+        additional[word] = score;
+        var data = JSON.stringify(additional, null, 4);
         
-        fs.writeFile('words.json', data, finished);
+        fs.writeFile('additional.json', data, finished);
         function finished(err){
             console.log('all set');
             
